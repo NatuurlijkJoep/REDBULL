@@ -1,221 +1,453 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Red Bull Tracker</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body { background: linear-gradient(135deg, #1e3a8a, #1e40af, #dc2626); min-height: 100vh; padding: 0.5rem; }
+    .container { max-width: 80rem; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 1.5rem; }
+    .header-box { display: inline-block; background: #dc2626; padding: 1rem 2rem; border-radius: 1.5rem; box-shadow: 0 20px 25px rgba(0,0,0,0.3); transform: rotate(-1deg); }
+    h1 { font-size: 2.5rem; font-weight: 900; color: #fcd34d; text-shadow: 2px 2px 0px rgba(0,0,0,0.3); }
+    .tabs { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { background: white; color: #1e3a8a; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; }
+    .tab.active { background: #fcd34d; transform: scale(1.05); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    .card { background: white; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 4px solid #fbbf24; }
+    .yellow-card { background: #fcd34d; border: 4px solid #1e3a8a; }
+    input, select { width: 100%; padding: 0.75rem; margin: 0.75rem 0; border: 2px solid #1e3a8a; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; }
+    input:focus, select:focus { outline: none; border-color: #dc2626; }
+    .btn { background: #dc2626; color: #fcd34d; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; font-size: 1.125rem; font-weight: 900; cursor: pointer; width: 100%; margin-top: 0.5rem; }
+    .btn:hover { background: #b91c1c; transform: scale(1.05); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat { background: #fcd34d; padding: 1rem; border-radius: 0.75rem; text-align: center; border: 4px solid #dc2626; }
+    .stat-num { font-size: 2.5rem; font-weight: 900; color: #1e3a8a; }
+    .stat-label { font-size: 0.75rem; font-weight: bold; color: #dc2626; margin-top: 0.25rem; }
+    .hidden { display: none; }
+    .entry-item { background: #fef3c7; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #1e3a8a; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .delete-btn { background: #dc2626; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; font-size: 0.875rem; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .filter-btns { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-btn { background: #fcd34d; color: #1e3a8a; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; border: none; font-size: 0.875rem; }
+    .filter-btn.active { background: #dc2626; color: #fcd34d; }
+    .edit-mode { background: #e0f2fe !important; }
+    .chart-container { position: relative; height: 300px; margin-top: 1rem; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    @media (max-width: 768px) { h1 { font-size: 1.5rem; } }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    // ============================================
-    // SUPABASE SETUP - Replace with your credentials
-    // ============================================
-    const SUPABASE_URL = 'https://usnqyxrjswoampjwlhla.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzbnF5eHJqc3dvYW1wandsaGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDE4ODMsImV4cCI6MjA4MzM3Nzg4M30.MU1Geo6OVQTOuNxwWjBWu3iPyp7DkY2OlLn5dfiAvpc';
+  <div class="container">
+    <div class="header">
+      <div class="header-box">
+        <h1>RED BULL TRACKER</h1>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="App.switchTab('dashboard')">📊 Dashboard</button>
+      <button class="tab" onclick="App.switchTab('compare')">👥 Compare</button>
+      <button class="tab" onclick="App.switchTab('recaps')">📅 Recaps</button>
+      <button class="tab" onclick="App.switchTab('settings')">⚙️ Settings</button>
+    </div>
+
+    <div id="tab-dashboard">
+      <div class="card">
+        <h2 style="color: #dc2626; margin-bottom: 1rem;">Log a Red Bull</h2>
+        <form onsubmit="App.addEntry(event); return false;">
+          <input type="text" id="person" placeholder="Your name" required>
+          <select id="flavor"></select>
+          <input type="date" id="date" required>
+          <div id="time-input" class="hidden"><input type="time" id="time"></div>
+          <div id="cost-input" class="hidden"><input type="number" id="cost" step="0.1" placeholder="Cost (€)"></div>
+          <button type="submit" class="btn">ADD</button>
+        </form>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-num" id="total-count">0</div>
+          <div class="stat-label">TOTAL</div>
+        </div>
+        <div class="stat" style="border-color: #1e3a8a;">
+          <div class="stat-num" id="total-caffeine">0mg</div>
+          <div class="stat-label">CAFFEINE</div>
+        </div>
+        <div class="stat" id="cost-stat" class="hidden">
+          <div class="stat-num" id="total-cost">€0.00</div>
+          <div class="stat-label">SPENT</div>
+        </div>
+        <div class="stat" style="border-color: #1e3a8a;">
+          <div class="stat-num" id="leader">N/A</div>
+          <div class="stat-label">LEADER</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <h3 style="color: #dc2626; font-weight: bold;">📈 Consumption Timeline</h3>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <div class="filter-btns" id="timeline-view-filters"></div>
+            <div class="filter-btns" id="timeline-filters"></div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="timeline-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: #dc2626; margin-bottom: 1rem; font-weight: bold;">🔥 Current Streaks</h3>
+          <div id="streaks-list"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="color: #1e3a8a; margin-bottom: 1rem; font-weight: bold;">📈 Period Comparison</h3>
+          <div id="comparison-list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <h3 style="color: #1e3a8a; font-weight: bold;">📅 Day of Week Pattern</h3>
+          <div class="filter-btns" id="day-filters"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="day-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" id="time-card" class="hidden">
+        <div class="chart-header">
+          <h3 style="color: #dc2626; font-weight: bold;">🕐 Time of Day Pattern</h3>
+          <div class="filter-btns" id="time-filters"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="time-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chart-header">
+          <h3 style="color: #1e3a8a; font-weight: bold;">🍹 Favorite Flavors</h3>
+          <div class="filter-btns" id="flavor-filters"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="flavor-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="color: #1e3a8a; margin-bottom: 1rem; font-weight: bold;">Recent Entries</h3>
+        <div id="entries-list"></div>
+      </div>
+    </div>
+
+    <div id="tab-compare" class="hidden"></div>
+    <div id="tab-recaps" class="hidden"></div>
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <div id="tab-settings" class="hidden">
+      <div class="card">
+        <h2 style="color: #dc2626; margin-bottom: 1rem;">Tracking Options</h2>
+        <label style="display: flex; gap: 0.75rem; align-items: center; margin: 1rem 0; cursor: pointer;">
+          <input type="checkbox" id="track-time" onchange="App.updateSettings()" style="width: auto;">
+          <span style="font-weight: bold; color: #1e3a8a;">Track time of day</span>
+        </label>
+        <label style="display: flex; gap: 0.75rem; align-items: center; margin: 1rem 0; cursor: pointer;">
+          <input type="checkbox" id="track-cost" onchange="App.updateSettings()" style="width: auto;">
+          <span style="font-weight: bold; color: #1e3a8a;">Track cost</span>
+        </label>
+        <div id="default-cost-input" class="hidden" style="margin-top: 1rem;">
+          <label style="font-weight: bold; color: #1e3a8a; display: block; margin-bottom: 0.5rem;">Default cost per can (€)</label>
+          <input type="number" id="default-cost" step="0.1" value="2.5" onchange="App.updateSettings()" style="width: 200px;">
+        </div>
+      </div>
 
-    const { useState, useEffect } = React;
-    const { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
-    const { PlusCircle, TrendingUp, Award, Plus, X, Flame, Coffee, DollarSign, Users, Download, Calendar, BarChart3, Settings } = lucide;
+      <div class="card yellow-card">
+        <h2 style="color: #1e3a8a; font-weight: bold; margin-bottom: 1rem;">Manage Flavors</h2>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="new-flavor" placeholder="New flavor name" style="flex: 1;">
+          <button onclick="App.addFlavor()" style="background: #dc2626; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; font-weight: bold; cursor: pointer;">Add</button>
+        </div>
+        <div id="flavors-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+      </div>
+    </div>
+  </div>
 
-    const DEFAULT_FLAVORS = ['Original', 'Sugar Free', 'Tropical', 'Watermelon', 'Coconut Berry', 'Red Edition', 'Blue Edition', 'Yellow Edition', 'Orange Edition', 'Green Edition', 'Purple Edition', 'Winter Edition', 'Other'];
-    const COLORS = ['#E31937', '#1E3A8A', '#FFD700', '#FF6B35', '#9D4EDD', '#06FFA5', '#FF006E'];
-    const CAFFEINE_PER_CAN = 80;
+  <script>
+    const App = (function() {
+      const SUPABASE_URL = 'https://usnqyxrjswoampjwlhla.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzbnF5eHJqc3dvYW1wandsaGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MDE4ODMsImV4cCI6MjA4MzM3Nzg4M30.MU1Geo6OVQTOuNxwWjBWu3iPyp7DkY2OlLn5dfiAvpc';
+      
+      let supabase;
+      let entries = [];
+      let flavors = ['Original', 'Sugar Free', 'Tropical', 'Watermelon', 'Coconut Berry', 'Red Edition', 'Blue Edition', 'Yellow Edition', 'Other'];
+      let settings = { trackTime: false, trackCost: false, defaultCost: 2.5 };
+      let selectedPerson = null;
+      let timelineView = 'last30';
+      let editingId = null;
+      let charts = {};
 
-    const Icon = ({ icon: IconComponent, ...props }) => {
-      const [IconElement, setIconElement] = useState(null);
-      useEffect(() => { if (IconComponent) lucide.createElement(IconComponent).then(setIconElement); }, [IconComponent]);
-      return IconElement ? React.cloneElement(IconElement, props) : null;
-    };
-
-    function RedBullTracker() {
-      const [entries, setEntries] = useState([]);
-      const [flavors, setFlavors] = useState(DEFAULT_FLAVORS);
-      const [settings, setSettings] = useState({ trackTime: false, trackCost: false, defaultCost: 2.5 });
-      const [newEntry, setNewEntry] = useState({ person: '', flavor: DEFAULT_FLAVORS[0], date: new Date().toISOString().split('T')[0], time: new Date().toTimeString().slice(0, 5), cost: 2.5 });
-      const [newFlavor, setNewFlavor] = useState('');
-      const [showAddFlavor, setShowAddFlavor] = useState(false);
-      const [activeTab, setActiveTab] = useState('dashboard');
-      const [selectedPerson, setSelectedPerson] = useState(null);
-      const [loading, setLoading] = useState(true);
-
-      useEffect(() => {
-        loadData();
+      async function init() {
+        console.log('Initializing...');
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        const entriesChannel = supabase
-          .channel('entries-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, loadEntries)
-          .subscribe();
-
-        const settingsChannel = supabase
-          .channel('settings-changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, loadSettings)
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(entriesChannel);
-          supabase.removeChannel(settingsChannel);
-        };
-      }, []);
-
-      const loadData = async () => {
-        await Promise.all([loadEntries(), loadSettings()]);
-        setLoading(false);
-      };
-
-      const loadEntries = async () => {
-        const { data, error } = await supabase.from('entries').select('*').order('date', { ascending: false });
-        if (!error && data) setEntries(data);
-      };
-
-      const loadSettings = async () => {
-        const { data: flavorsData } = await supabase.from('settings').select('*').eq('key', 'flavors').single();
-        const { data: prefsData } = await supabase.from('settings').select('*').eq('key', 'preferences').single();
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('time').value = new Date().toTimeString().slice(0, 5);
+        document.getElementById('cost').value = settings.defaultCost;
         
-        if (flavorsData?.value) setFlavors(flavorsData.value);
-        if (prefsData?.value) {
-          setSettings(prefsData.value);
-          setNewEntry(p => ({ ...p, cost: prefsData.value.defaultCost }));
+        await loadData();
+        render();
+        subscribe();
+      }
+
+      async function loadData() {
+        try {
+          const { data } = await supabase.from('entries').select('*').order('date', { ascending: false });
+          if (data) entries = data;
+          
+          const { data: f } = await supabase.from('settings').select('*').eq('key', 'flavors').single();
+          if (f?.value) flavors = f.value;
+          
+          const { data: p } = await supabase.from('settings').select('*').eq('key', 'preferences').single();
+          if (p?.value) {
+            settings = p.value;
+            document.getElementById('track-time').checked = settings.trackTime;
+            document.getElementById('track-cost').checked = settings.trackCost;
+            document.getElementById('default-cost').value = settings.defaultCost;
+            updateSettings();
+          }
+        } catch (err) {
+          console.error('Load error:', err);
         }
-      };
+      }
 
-      const addEntry = async () => {
-        const cn = newEntry.person.trim().charAt(0).toUpperCase() + newEntry.person.trim().slice(1).toLowerCase();
-        if (!cn) return alert('Please enter your name!');
+      function subscribe() {
+        supabase.channel('changes').on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, async () => {
+          await loadData();
+          render();
+        }).subscribe();
+      }
 
-        const { error } = await supabase.from('entries').insert([{
-          person: cn,
-          flavor: newEntry.flavor,
-          date: newEntry.date,
-          time: newEntry.time,
-          cost: parseFloat(newEntry.cost)
-        }]);
-
-        if (!error) {
-          setNewEntry({
-            person: cn,
-            flavor: flavors[0],
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toTimeString().slice(0, 5),
-            cost: settings.defaultCost
-          });
-        }
-      };
-
-      const addFlavor = async () => {
-        if (!newFlavor.trim() || flavors.includes(newFlavor.trim())) return alert('Invalid or duplicate flavor!');
-        const updated = [...flavors, newFlavor.trim()];
+      function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach((btn, i) => {
+          btn.classList.toggle('active', ['dashboard', 'compare', 'recaps', 'settings'][i] === tab);
+        });
         
-        await supabase.from('settings').upsert({ key: 'flavors', value: updated });
-        setFlavors(updated);
-        setNewFlavor('');
-        setShowAddFlavor(false);
-      };
+        ['dashboard', 'compare', 'recaps', 'settings'].forEach(t => {
+          document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        });
+        
+        if (tab === 'compare') renderCompare();
+        if (tab === 'recaps') renderRecaps();
+      }
 
-      const deleteFlavor = async (f) => {
-        if (flavors.length <= 1 || entries.some(e => e.flavor === f) && !confirm(`Delete "${f}"?`)) return;
-        const updated = flavors.filter(x => x !== f);
-        await supabase.from('settings').upsert({ key: 'flavors', value: updated });
-        setFlavors(updated);
-      };
+      async function addEntry(e) {
+        e.preventDefault();
+        const person = document.getElementById('person').value.trim();
+        if (!person) return alert('Enter your name!');
+        
+        const name = person.charAt(0).toUpperCase() + person.slice(1).toLowerCase();
+        
+        try {
+          const { error } = await supabase.from('entries').insert([{
+            person: name,
+            flavor: document.getElementById('flavor').value,
+            date: document.getElementById('date').value,
+            time: settings.trackTime ? document.getElementById('time').value : null,
+            cost: settings.trackCost ? parseFloat(document.getElementById('cost').value) : null
+          }]);
+          
+          if (error) {
+            console.error('Insert error:', error);
+            alert('Failed: ' + error.message);
+            return;
+          }
+          
+          document.getElementById('person').value = name;
+          await loadData();
+          render();
+        } catch (err) {
+          console.error('Add entry error:', err);
+          alert('Error: ' + err.message);
+        }
+      }
 
-      const deleteEntry = async (id) => {
+      async function deleteEntry(id) {
         await supabase.from('entries').delete().eq('id', id);
-      };
+        await loadData();
+        render();
+      }
 
-      const updateSettings = async (key, value) => {
-        const updated = { ...settings, [key]: value };
-        setSettings(updated);
-        if (key === 'defaultCost') setNewEntry(p => ({ ...p, cost: value }));
-        await supabase.from('settings').upsert({ key: 'preferences', value: updated });
-      };
+      async function editEntry(id) {
+        editingId = id;
+        render();
+      }
 
-      const exportData = () => {
-        const csv = [
-          ['Person', 'Flavor', 'Date', 'Time', 'Cost', 'Caffeine (mg)'],
-          ...entries.map(e => [e.person, e.flavor, e.date, e.time || '', e.cost || '', CAFFEINE_PER_CAN])
-        ].map(row => row.join(',')).join('\n');
+      async function saveEdit(id) {
+        const person = document.getElementById(`edit-person-${id}`).value.trim();
+        const flavor = document.getElementById(`edit-flavor-${id}`).value;
+        const date = document.getElementById(`edit-date-${id}`).value;
+        const time = document.getElementById(`edit-time-${id}`)?.value;
+        const cost = document.getElementById(`edit-cost-${id}`)?.value;
+
+        const name = person.charAt(0).toUpperCase() + person.slice(1).toLowerCase();
+
+        await supabase.from('entries').update({
+          person: name,
+          flavor,
+          date,
+          time: settings.trackTime ? time : null,
+          cost: settings.trackCost && cost ? parseFloat(cost) : null
+        }).eq('id', id);
+
+        editingId = null;
+        await loadData();
+        render();
+      }
+
+      function cancelEdit() {
+        editingId = null;
+        render();
+      }
+
+      async function updateSettings() {
+        settings.trackTime = document.getElementById('track-time').checked;
+        settings.trackCost = document.getElementById('track-cost').checked;
+        settings.defaultCost = parseFloat(document.getElementById('default-cost').value);
         
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `redbull-tracker-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-      };
+        document.getElementById('time-input').classList.toggle('hidden', !settings.trackTime);
+        document.getElementById('cost-input').classList.toggle('hidden', !settings.trackCost);
+        document.getElementById('default-cost-input').classList.toggle('hidden', !settings.trackCost);
+        
+        if (settings.trackTime) document.getElementById('time').value = new Date().toTimeString().slice(0, 5);
+        if (settings.trackCost) document.getElementById('cost').value = settings.defaultCost;
+        
+        await supabase.from('settings').upsert({ key: 'preferences', value: settings });
+        render();
+      }
 
-      const getStreak = (person) => {
-        const userEntries = entries.filter(e => e.person === person).sort((a, b) => new Date(b.date) - new Date(a.date));
-        if (!userEntries.length) return 0;
-        let streak = 1;
-        for (let i = 0; i < userEntries.length - 1; i++) {
-          const current = new Date(userEntries[i].date);
-          const next = new Date(userEntries[i + 1].date);
-          const diffDays = Math.floor((current - next) / (1000 * 60 * 60 * 24));
-          if (diffDays === 1) streak++;
-          else break;
+      async function addFlavor() {
+        const f = document.getElementById('new-flavor').value.trim();
+        if (!f || flavors.includes(f)) return alert('Invalid or duplicate!');
+        flavors.push(f);
+        await supabase.from('settings').upsert({ key: 'flavors', value: flavors });
+        document.getElementById('new-flavor').value = '';
+        render();
+      }
+
+      async function deleteFlavor(f) {
+        if (flavors.length <= 1) return;
+        if (entries.some(e => e.flavor === f) && !confirm(`Delete "${f}"?`)) return;
+        flavors = flavors.filter(x => x !== f);
+        await supabase.from('settings').upsert({ key: 'flavors', value: flavors });
+        render();
+      }
+
+      function render() {
+        renderFlavors();
+        renderStats();
+        renderStreaks();
+        renderComparison();
+        renderTimelineChart();
+        renderDayChart();
+        renderTimeChart();
+        renderFlavorChart();
+        renderEntries();
+        renderFlavorsList();
+      }
+
+      function renderFlavors() {
+        document.getElementById('flavor').innerHTML = flavors.map(f => `<option value="${f}">${f}</option>`).join('');
+      }
+
+      function renderStats() {
+        const people = {};
+        entries.forEach(e => people[e.person] = (people[e.person] || 0) + 1);
+        const leader = Object.keys(people).sort((a, b) => people[b] - people[a])[0] || 'N/A';
+        
+        document.getElementById('total-count').textContent = entries.length;
+        document.getElementById('total-caffeine').textContent = (entries.length * 80) + 'mg';
+        document.getElementById('leader').textContent = leader;
+        
+        if (settings.trackCost) {
+          const cost = entries.reduce((s, e) => s + (parseFloat(e.cost) || 0), 0);
+          document.getElementById('total-cost').textContent = '€' + cost.toFixed(2);
+          document.getElementById('cost-stat').classList.remove('hidden');
+        } else {
+          document.getElementById('cost-stat').classList.add('hidden');
         }
-        return streak;
-      };
+      }
 
-      const getPersonStats = (person) => {
-        const userEntries = entries.filter(e => e.person === person);
-        return {
-          total: userEntries.length,
-          caffeine: userEntries.length * CAFFEINE_PER_CAN,
-          cost: settings.trackCost ? userEntries.reduce((sum, e) => sum + (parseFloat(e.cost) || 0), 0) : 0,
-          streak: getStreak(person)
-        };
-      };
+      function renderEntries() {
+        const html = entries.slice(0, 20).map(e => {
+          if (editingId === e.id) {
+            return `
+              <div class="entry-item edit-mode">
+                <div style="display: grid; gap: 0.5rem; flex: 1;">
+                  <input type="text" id="edit-person-${e.id}" value="${e.person}" style="margin: 0; padding: 0.5rem;">
+                  <select id="edit-flavor-${e.id}" style="margin: 0; padding: 0.5rem;">
+                    ${flavors.map(f => `<option value="${f}" ${f === e.flavor ? 'selected' : ''}>${f}</option>`).join('')}
+                  </select>
+                  <input type="date" id="edit-date-${e.id}" value="${e.date}" style="margin: 0; padding: 0.5rem;">
+                  ${settings.trackTime ? `<input type="time" id="edit-time-${e.id}" value="${e.time || ''}" style="margin: 0; padding: 0.5rem;">` : ''}
+                  ${settings.trackCost ? `<input type="number" id="edit-cost-${e.id}" value="${e.cost || ''}" step="0.1" style="margin: 0; padding: 0.5rem;">` : ''}
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button onclick="App.saveEdit(${e.id})" style="background: #16a34a; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Save</button>
+                  <button onclick="App.cancelEdit()" style="background: #6b7280; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Cancel</button>
+                </div>
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="entry-item">
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <strong style="color: #1e3a8a;">${e.person}</strong>
+                <span style="color: #dc2626;">${e.flavor}</span>
+                <span style="color: #666; font-size: 0.875rem;">${e.date}</span>
+                ${e.time ? `<span style="color: #666; font-size: 0.875rem;">${e.time}</span>` : ''}
+                ${e.cost ? `<span style="color: #16a34a; font-size: 0.875rem;">€${e.cost}</span>` : ''}
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button onclick="App.editEntry(${e.id})" style="background: #3b82f6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; font-size: 0.875rem;">Edit</button>
+                <button class="delete-btn" onclick="App.deleteEntry(${e.id})">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('entries-list').innerHTML = html || '<p style="text-align: center; padding: 1rem; color: #666;">No entries yet</p>';
+      }
 
-      const getAllPeople = () => [...new Set(entries.map(e => e.person))];
+      function renderStreaks() {
+        const people = [...new Set(entries.map(e => e.person))];
+        const html = people.map(p => {
+          const userEntries = entries.filter(e => e.person === p).sort((a, b) => new Date(b.date) - new Date(a.date));
+          let streak = 0;
+          if (userEntries.length) {
+            streak = 1;
+            for (let i = 0; i < userEntries.length - 1; i++) {
+              const diffDays = Math.floor((new Date(userEntries[i].date) - new Date(userEntries[i+1].date)) / (1000*60*60*24));
+              if (diffDays === 1) streak++;
+              else break;
+            }
+          }
+          return `
+            <div style="background: #fef3c7; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #1e3a8a; display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-weight: bold; color: #1e3a8a;">${p}</span>
+              <span style="font-size: 1.5rem; font-weight: 900; color: #f97316;">${streak} day${streak !== 1 ? 's' : ''}</span>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('streaks-list').innerHTML = html || '<p style="text-align: center; color: #666;">No data</p>';
+      }
 
-      const getTimeOfDayData = (person = null) => {
-        if (!settings.trackTime) return [];
-        const filteredEntries = person ? entries.filter(e => e.person === person) : entries;
-        const periods = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
-        filteredEntries.forEach(e => {
-          if (!e.time) return;
-          const hour = parseInt(e.time.split(':')[0]);
-          if (hour >= 5 && hour < 12) periods.Morning++;
-          else if (hour >= 12 && hour < 17) periods.Afternoon++;
-          else if (hour >= 17 && hour < 21) periods.Evening++;
-          else periods.Night++;
-        });
-        return Object.entries(periods).map(([name, value]) => ({ name, value }));
-      };
-
-      const getDayOfWeekData = (person = null) => {
-        const filteredEntries = person ? entries.filter(e => e.person === person) : entries;
-        const daysCounts = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0 };
-        
-        filteredEntries.forEach(e => {
-          const date = new Date(e.date);
-          const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
-          daysCounts[dayName]++;
-        });
-        
-        return [
-          { name: 'Mon', value: daysCounts.Monday },
-          { name: 'Tue', value: daysCounts.Tuesday },
-          { name: 'Wed', value: daysCounts.Wednesday },
-          { name: 'Thu', value: daysCounts.Thursday },
-          { name: 'Fri', value: daysCounts.Friday },
-          { name: 'Sat', value: daysCounts.Saturday },
-          { name: 'Sun', value: daysCounts.Sunday }
-        ];
-      };
-
-      const getPeriodComparison = () => {
+      function renderComparison() {
         const now = new Date();
         const thisWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
         const lastWeekStart = new Date(thisWeekStart);
@@ -224,352 +456,367 @@
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        return {
-          thisWeek: entries.filter(e => new Date(e.date) >= thisWeekStart).length,
-          lastWeek: entries.filter(e => { const d = new Date(e.date); return d >= lastWeekStart && d < thisWeekStart; }).length,
-          thisMonth: entries.filter(e => new Date(e.date) >= thisMonthStart).length,
-          lastMonth: entries.filter(e => { const d = new Date(e.date); return d >= lastMonthStart && d < thisMonthStart; }).length
-        };
-      };
+        const thisWeek = entries.filter(e => new Date(e.date) >= thisWeekStart).length;
+        const lastWeek = entries.filter(e => { const d = new Date(e.date); return d >= lastWeekStart && d < thisWeekStart; }).length;
+        const thisMonth = entries.filter(e => new Date(e.date) >= thisMonthStart).length;
+        const lastMonth = entries.filter(e => { const d = new Date(e.date); return d >= lastMonthStart && d < thisMonthStart; }).length;
 
-      const getRecaps = (person = null) => {
-        const recapsByPeriod = {};
-        const filteredEntries = person ? entries.filter(e => e.person === person) : entries;
-        
-        filteredEntries.forEach(e => {
-          const date = new Date(e.date);
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          const yearKey = `${date.getFullYear()}`;
-          
-          if (!recapsByPeriod[monthKey]) recapsByPeriod[monthKey] = { type: 'month', count: 0, caffeine: 0, cost: 0 };
-          if (!recapsByPeriod[yearKey]) recapsByPeriod[yearKey] = { type: 'year', count: 0, caffeine: 0, cost: 0 };
-          
-          recapsByPeriod[monthKey].count++;
-          recapsByPeriod[monthKey].caffeine += CAFFEINE_PER_CAN;
-          recapsByPeriod[monthKey].cost += parseFloat(e.cost) || 0;
-          
-          recapsByPeriod[yearKey].count++;
-          recapsByPeriod[yearKey].caffeine += CAFFEINE_PER_CAN;
-          recapsByPeriod[yearKey].cost += parseFloat(e.cost) || 0;
-        });
-        
-        return Object.entries(recapsByPeriod).sort((a, b) => b[0].localeCompare(a[0]));
-      };
-
-      if (loading) {
-        return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-red-600">
-          <div className="text-xl text-white">Loading...</div>
-        </div>;
+        document.getElementById('comparison-list').innerHTML = `
+          <div style="background: #fef3c7; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #1e3a8a; margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: bold; color: #1e3a8a;">This Week</div>
+                <div style="font-size: 0.875rem; color: #666;">Last Week: ${lastWeek}</div>
+              </div>
+              <span style="font-size: 1.5rem; font-weight: 900; color: #dc2626;">${thisWeek}</span>
+            </div>
+          </div>
+          <div style="background: #fef3c7; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #1e3a8a;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: bold; color: #1e3a8a;">This Month</div>
+                <div style="font-size: 0.875rem; color: #666;">Last Month: ${lastMonth}</div>
+              </div>
+              <span style="font-size: 1.5rem; font-weight: 900; color: #dc2626;">${thisMonth}</span>
+            </div>
+          </div>
+        `;
       }
 
-      const comparison = getPeriodComparison();
-      const totalCaffeine = entries.length * CAFFEINE_PER_CAN;
-      const totalCost = settings.trackCost ? entries.reduce((sum, e) => sum + (parseFloat(e.cost) || 0), 0) : 0;
+      function renderTimelineChart() {
+        const people = [...new Set(entries.map(e => e.person))];
+        
+        // View filter buttons (Last 30 Days / 2026)
+        const viewFiltersHtml = `
+          <button class="filter-btn ${timelineView === 'last30' ? 'active' : ''}" onclick="App.setTimelineView('last30')">Last 30 Days</button>
+          <button class="filter-btn ${timelineView === '2026' ? 'active' : ''}" onclick="App.setTimelineView('2026')">2026</button>
+        `;
+        document.getElementById('timeline-view-filters').innerHTML = viewFiltersHtml;
+        
+        // Person filter buttons
+        const filtersHtml = `
+          <button class="filter-btn ${selectedPerson === null ? 'active' : ''}" onclick="App.setFilter(null, 'timeline')">All Combined</button>
+          ${people.map(p => `<button class="filter-btn ${selectedPerson === p ? 'active' : ''}" onclick="App.setFilter('${p}', 'timeline')">${p}</button>`).join('')}
+        `;
+        document.getElementById('timeline-filters').innerHTML = filtersHtml;
 
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-red-600 p-2 sm:p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-4 sm:mb-6">
-              <div className="inline-block bg-red-600 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl sm:rounded-3xl shadow-2xl transform -rotate-1">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-yellow-300" style={{textShadow: '2px 2px 0px rgba(0,0,0,0.3)'}}>RED BULL TRACKER</h1>
-              </div>
-            </div>
+        let dates = [];
+        let labels = [];
+        
+        if (timelineView === 'last30') {
+          // Last 30 days view
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            dates.push(d.toISOString().split('T')[0]);
+          }
+          labels = dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        } else {
+          // 2026 view - from Jan 1 to today (or end of year if past)
+          const today = new Date();
+          const startDate = new Date('2026-01-01');
+          const endDate = today.getFullYear() === 2026 ? today : new Date('2026-12-31');
+          
+          const currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            dates.push(currentDate.toISOString().split('T')[0]);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          
+          // Label every 7th day for cleaner display
+          labels = dates.map((d, i) => {
+            if (i % 7 === 0 || i === dates.length - 1) {
+              return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            return '';
+          });
+        }
 
-            <div className="flex flex-wrap gap-2 mb-4 sm:mb-6 justify-center">
-              {['dashboard', 'compare', 'recaps', 'settings'].map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-3 sm:px-6 py-2 sm:py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${activeTab === tab ? 'bg-yellow-300 text-blue-900 shadow-lg transform scale-105' : 'bg-white text-blue-900 hover:bg-yellow-100'}`}>
-                  {tab === 'dashboard' && <Icon icon={BarChart3} className="inline mr-1 sm:mr-2" size={16} />}
-                  {tab === 'compare' && <Icon icon={Users} className="inline mr-1 sm:mr-2" size={16} />}
-                  {tab === 'recaps' && <Icon icon={Calendar} className="inline mr-1 sm:mr-2" size={16} />}
-                  {tab === 'settings' && <Icon icon={Settings} className="inline mr-1 sm:mr-2" size={16} />}
-                  <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-                  <span className="sm:hidden">{tab.charAt(0).toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
+        const filtered = selectedPerson ? entries.filter(e => e.person === selectedPerson) : entries;
+        const counts = {};
+        dates.forEach(d => counts[d] = 0);
+        filtered.forEach(e => {
+          if (counts[e.date] !== undefined) counts[e.date]++;
+        });
 
-            {activeTab === 'dashboard' && (
-              <>
-                <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-6 mb-4 sm:mb-6 border-4 border-yellow-400">
-                  <h2 className="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2 text-red-600">
-                    <Icon icon={PlusCircle} size={20} />Log a Red Bull
-                  </h2>
-                  <div className="grid grid-cols-1 gap-3">
-                    <input type="text" placeholder="Your name" value={newEntry.person} onChange={(e) => setNewEntry({...newEntry, person: e.target.value})} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-base" />
-                    <select value={newEntry.flavor} onChange={(e) => setNewEntry({...newEntry, flavor: e.target.value})} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-base">
-                      {flavors.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                    <input type="date" value={newEntry.date} onChange={(e) => setNewEntry({...newEntry, date: e.target.value})} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-base" />
-                    {settings.trackTime && <input type="time" value={newEntry.time} onChange={(e) => setNewEntry({...newEntry, time: e.target.value})} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-base" />}
-                    {settings.trackCost && <input type="number" step="0.1" value={newEntry.cost} onChange={(e) => setNewEntry({...newEntry, cost: e.target.value})} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-base" placeholder="Cost (€)" />}
-                    <button onClick={addEntry} className="bg-red-600 text-yellow-300 px-6 py-3 rounded-lg font-black text-lg hover:bg-red-700 transition-all transform hover:scale-105 shadow-lg">ADD</button>
-                  </div>
-                </div>
+        if (charts.timeline) charts.timeline.destroy();
+        const ctx = document.getElementById('timeline-chart').getContext('2d');
+        charts.timeline = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: selectedPerson || 'Total',
+              data: Object.values(counts),
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: timelineView === '2026' ? 2 : 3,
+              pointHoverRadius: timelineView === '2026' ? 4 : 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: function(context) {
+                    return dates[context[0].dataIndex];
+                  }
+                }
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              },
+              x: {
+                ticks: {
+                  maxRotation: timelineView === '2026' ? 45 : 0,
+                  minRotation: timelineView === '2026' ? 45 : 0
+                }
+              }
+            }
+          }
+        });
+      }
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="bg-yellow-300 rounded-xl shadow-xl p-3 sm:p-4 text-center border-4 border-red-600">
-                    <div className="text-3xl sm:text-4xl font-black text-blue-900">{entries.length}</div>
-                    <div className="text-red-600 font-bold text-xs sm:text-sm">TOTAL</div>
-                  </div>
-                  <div className="bg-yellow-300 rounded-xl shadow-xl p-3 sm:p-4 text-center border-4 border-blue-900">
-                    <Icon icon={Coffee} className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600 mb-1" />
-                    <div className="text-xl sm:text-2xl font-black text-blue-900">{totalCaffeine}mg</div>
-                    <div className="text-red-600 font-bold text-xs sm:text-sm">CAFFEINE</div>
-                  </div>
-                  {settings.trackCost && (
-                    <div className="bg-yellow-300 rounded-xl shadow-xl p-3 sm:p-4 text-center border-4 border-red-600">
-                      <Icon icon={DollarSign} className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-blue-900 mb-1" />
-                      <div className="text-xl sm:text-2xl font-black text-blue-900">€{totalCost.toFixed(2)}</div>
-                      <div className="text-red-600 font-bold text-xs sm:text-sm">SPENT</div>
-                    </div>
-                  )}
-                  <div className="bg-yellow-300 rounded-xl shadow-xl p-3 sm:p-4 text-center border-4 border-blue-900">
-                    <Icon icon={Award} className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600 mb-1" />
-                    <div className="text-base sm:text-xl font-black text-blue-900 truncate px-1">{getAllPeople().sort((a,b) => getPersonStats(b).total - getPersonStats(a).total)[0] || 'N/A'}</div>
-                    <div className="text-red-600 font-bold text-xs sm:text-sm">LEADER</div>
-                  </div>
-                </div>
+      function renderDayChart() {
+        const people = [...new Set(entries.map(e => e.person))];
+        
+        const filtersHtml = `
+          <button class="filter-btn ${selectedPerson === null ? 'active' : ''}" onclick="App.setFilter(null, 'day')">All Combined</button>
+          ${people.map(p => `<button class="filter-btn ${selectedPerson === p ? 'active' : ''}" onclick="App.setFilter('${p}', 'day')">${p}</button>`).join('')}
+        `;
+        document.getElementById('day-filters').innerHTML = filtersHtml;
 
-                {getAllPeople().length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                      <h3 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2">
-                        <Icon icon={Flame} className="text-orange-500" />Current Streaks
-                      </h3>
-                      <div className="space-y-3">
-                        {getAllPeople().map(person => {
-                          const streak = getStreak(person);
-                          return <div key={person} className="flex justify-between items-center p-3 bg-yellow-100 rounded-lg border-2 border-blue-900">
-                            <span className="font-bold text-blue-900">{person}</span>
-                            <span className="text-2xl font-black text-orange-500">{streak} day{streak !== 1 ? 's' : ''}</span>
-                          </div>;
-                        })}
-                      </div>
-                    </div>
+        const filtered = selectedPerson ? entries.filter(e => e.person === selectedPerson) : entries;
+        const days = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0 };
+        filtered.forEach(e => {
+          const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(e.date).getDay()];
+          days[dayName]++;
+        });
 
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                      <h3 className="text-xl font-bold mb-4 text-blue-900 flex items-center gap-2">
-                        <Icon icon={TrendingUp} />Period Comparison
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="p-3 bg-yellow-100 rounded-lg border-2 border-blue-900">
-                          <div className="flex justify-between">
-                            <span className="font-bold text-blue-900">This Week</span>
-                            <span className="font-black text-red-600">{comparison.thisWeek}</span>
-                          </div>
-                          <div className="text-sm text-gray-600">Last Week: {comparison.lastWeek}</div>
-                        </div>
-                        <div className="p-3 bg-yellow-100 rounded-lg border-2 border-blue-900">
-                          <div className="flex justify-between">
-                            <span className="font-bold text-blue-900">This Month</span>
-                            <span className="font-black text-red-600">{comparison.thisMonth}</span>
-                          </div>
-                          <div className="text-sm text-gray-600">Last Month: {comparison.lastMonth}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        if (charts.day) charts.day.destroy();
+        const ctx = document.getElementById('day-chart').getContext('2d');
+        charts.day = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            datasets: [{
+              label: 'Red Bulls',
+              data: Object.values(days),
+              backgroundColor: '#dc2626',
+              borderColor: '#1e3a8a',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
 
-                {entries.length > 0 && (
-                  <>
-                    <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border-4 border-yellow-400">
-                      <h3 className="text-xl font-bold mb-4 text-blue-900">Day of Week Pattern</h3>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <button onClick={() => setSelectedPerson(null)} className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${selectedPerson === null ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>All Combined</button>
-                        {getAllPeople().map(person => (
-                          <button key={person} onClick={() => setSelectedPerson(person)} className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${selectedPerson === person ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>{person}</button>
-                        ))}
-                      </div>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <BarChart data={getDayOfWeekData(selectedPerson)}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar dataKey="value" fill="#E31937" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
+      function renderTimeChart() {
+        if (!settings.trackTime) {
+          document.getElementById('time-card').classList.add('hidden');
+          return;
+        }
+        document.getElementById('time-card').classList.remove('hidden');
 
-                    {settings.trackTime && getTimeOfDayData().some(d => d.value > 0) && (
-                      <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border-4 border-yellow-400">
-                        <h3 className="text-xl font-bold mb-4 text-red-600">Time of Day Pattern</h3>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <button onClick={() => setSelectedPerson(null)} className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${selectedPerson === null ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>All Combined</button>
-                          {getAllPeople().map(person => (
-                            <button key={person} onClick={() => setSelectedPerson(person)} className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${selectedPerson === person ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>{person}</button>
-                          ))}
-                        </div>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <BarChart data={getTimeOfDayData(selectedPerson)}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#1E3A8A" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
+        const people = [...new Set(entries.map(e => e.person))];
+        
+        const filtersHtml = `
+          <button class="filter-btn ${selectedPerson === null ? 'active' : ''}" onclick="App.setFilter(null, 'time')">All Combined</button>
+          ${people.map(p => `<button class="filter-btn ${selectedPerson === p ? 'active' : ''}" onclick="App.setFilter('${p}', 'time')">${p}</button>`).join('')}
+        `;
+        document.getElementById('time-filters').innerHTML = filtersHtml;
+        
+        const filtered = selectedPerson ? entries.filter(e => e.person === selectedPerson) : entries;
+        const periods = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
+        
+        filtered.forEach(e => {
+          if (!e.time) return;
+          const hour = parseInt(e.time.split(':')[0]);
+          if (hour >= 5 && hour < 12) periods.Morning++;
+          else if (hour >= 12 && hour < 17) periods.Afternoon++;
+          else if (hour >= 17 && hour < 21) periods.Evening++;
+          else periods.Night++;
+        });
 
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-blue-900">Recent Entries</h3>
-                        <button onClick={exportData} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 flex items-center gap-2">
-                          <Icon icon={Download} size={16} />Export CSV
-                        </button>
-                      </div>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {[...entries].slice(0, 20).map(entry => (
-                          <div key={entry.id} className="flex items-center justify-between p-3 bg-yellow-100 rounded-lg border-2 border-blue-900">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <span className="font-bold text-blue-900">{entry.person}</span>
-                              <span className="text-red-600 font-semibold">{entry.flavor}</span>
-                              <span className="text-sm text-gray-700">{entry.date}</span>
-                              {settings.trackTime && entry.time && <span className="text-sm text-gray-600">{entry.time}</span>}
-                              {settings.trackCost && entry.cost && <span className="text-sm text-green-600">€{entry.cost}</span>}
-                            </div>
-                            <button onClick={() => deleteEntry(entry.id)} className="text-red-600 hover:text-red-800 font-bold text-sm">Delete</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+        if (charts.time) charts.time.destroy();
+        const ctx = document.getElementById('time-chart').getContext('2d');
+        charts.time = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(periods),
+            datasets: [{
+              data: Object.values(periods),
+              backgroundColor: ['#fcd34d', '#dc2626', '#1e3a8a', '#6b7280'],
+              borderColor: '#ffffff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      }
 
-            {activeTab === 'compare' && (
-              <div className="space-y-6">
-                {getAllPeople().map(person => {
-                  const stats = getPersonStats(person);
-                  return <div key={person} className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                    <h2 className="text-3xl font-black text-blue-900 mb-4">{person}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-yellow-100 p-4 rounded-lg border-2 border-red-600 text-center">
-                        <div className="text-3xl font-black text-red-600">{stats.total}</div>
-                        <div className="text-sm font-bold text-blue-900">Total Cans</div>
-                      </div>
-                      <div className="bg-yellow-100 p-4 rounded-lg border-2 border-blue-900 text-center">
-                        <Icon icon={Coffee} className="w-6 h-6 mx-auto text-red-600 mb-1" />
-                        <div className="text-2xl font-black text-blue-900">{stats.caffeine}mg</div>
-                        <div className="text-sm font-bold text-red-600">Caffeine</div>
-                      </div>
-                      <div className="bg-yellow-100 p-4 rounded-lg border-2 border-red-600 text-center">
-                        <Icon icon={Flame} className="w-6 h-6 mx-auto text-orange-500 mb-1" />
-                        <div className="text-2xl font-black text-blue-900">{stats.streak}</div>
-                        <div className="text-sm font-bold text-red-600">Day Streak</div>
-                      </div>
-                      {settings.trackCost && (
-                        <div className="bg-yellow-100 p-4 rounded-lg border-2 border-blue-900 text-center">
-                          <Icon icon={DollarSign} className="w-6 h-6 mx-auto text-green-600 mb-1" />
-                          <div className="text-2xl font-black text-blue-900">€{stats.cost.toFixed(2)}</div>
-                          <div className="text-sm font-bold text-red-600">Spent</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>;
-                })}
-              </div>
-            )}
+      function renderFlavorChart() {
+        const people = [...new Set(entries.map(e => e.person))];
+        
+        const filtersHtml = `
+          <button class="filter-btn ${selectedPerson === null ? 'active' : ''}" onclick="App.setFilter(null, 'flavor')">All Combined</button>
+          ${people.map(p => `<button class="filter-btn ${selectedPerson === p ? 'active' : ''}" onclick="App.setFilter('${p}', 'flavor')">${p}</button>`).join('')}
+        `;
+        document.getElementById('flavor-filters').innerHTML = filtersHtml;
 
-            {activeTab === 'recaps' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-xl p-4 border-4 border-yellow-400">
-                  <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setSelectedPerson(null)} className={`px-4 py-2 rounded-lg font-bold transition-all ${selectedPerson === null ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>All Combined</button>
-                    {getAllPeople().map(person => (
-                      <button key={person} onClick={() => setSelectedPerson(person)} className={`px-4 py-2 rounded-lg font-bold transition-all ${selectedPerson === person ? 'bg-red-600 text-yellow-300' : 'bg-yellow-300 text-blue-900 hover:bg-yellow-400'}`}>{person}</button>
-                    ))}
-                  </div>
-                </div>
+        const filtered = selectedPerson ? entries.filter(e => e.person === selectedPerson) : entries;
+        const flavorCounts = {};
+        filtered.forEach(e => flavorCounts[e.flavor] = (flavorCounts[e.flavor] || 0) + 1);
+        const sorted = Object.entries(flavorCounts).sort((a, b) => b[1] - a[1]);
 
-                <div className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                  <h2 className="text-2xl font-bold mb-4 text-red-600">{selectedPerson ? `${selectedPerson}'s Recaps` : 'Combined Recaps'}</h2>
-                  <div className="space-y-4">
-                    {getRecaps(selectedPerson).map(([period, data]) => (
-                      <div key={period} className="p-4 bg-yellow-100 rounded-lg border-2 border-blue-900">
-                        <h3 className="text-xl font-bold text-blue-900 mb-2">{data.type === 'year' ? `Year ${period}` : new Date(period + '-01').toLocaleDateString('en-US', {month: 'long', year: 'numeric'})}</h3>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <div className="text-2xl font-black text-red-600">{data.count}</div>
-                            <div className="text-sm text-gray-600">Red Bulls</div>
-                          </div>
-                          <div>
-                            <div className="text-2xl font-black text-blue-900">{data.caffeine}mg</div>
-                            <div className="text-sm text-gray-600">Caffeine</div>
-                          </div>
-                          {settings.trackCost && (
-                            <div>
-                              <div className="text-2xl font-black text-green-600">€{data.cost.toFixed(2)}</div>
-                              <div className="text-sm text-gray-600">Cost</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+        if (charts.flavor) charts.flavor.destroy();
+        const ctx = document.getElementById('flavor-chart').getContext('2d');
+        charts.flavor = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: sorted.map(([f]) => f),
+            datasets: [{
+              label: 'Count',
+              data: sorted.map(([, c]) => c),
+              backgroundColor: '#fcd34d',
+              borderColor: '#1e3a8a',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              x: { 
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
 
-            {activeTab === 'settings' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-                  <h2 className="text-2xl font-bold mb-4 text-red-600">Tracking Options</h2>
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={settings.trackTime} onChange={(e) => updateSettings('trackTime', e.target.checked)} className="w-5 h-5" />
-                      <span className="font-bold text-blue-900">Track time of day</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={settings.trackCost} onChange={(e) => updateSettings('trackCost', e.target.checked)} className="w-5 h-5" />
-                      <span className="font-bold text-blue-900">Track cost</span>
-                    </label>
-                    {settings.trackCost && (
-                      <div>
-                        <label className="font-bold text-blue-900 block mb-2">Default cost per can (€)</label>
-                        <input type="number" step="0.1" value={settings.defaultCost} onChange={(e) => updateSettings('defaultCost', parseFloat(e.target.value))} className="px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold w-32" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+      function setFilter(person, chart) {
+        selectedPerson = person;
+        if (chart === 'timeline') renderTimelineChart();
+        else if (chart === 'day') renderDayChart();
+        else if (chart === 'time') renderTimeChart();
+        else if (chart === 'flavor') renderFlavorChart();
+      }
 
-                <div className="bg-yellow-300 rounded-2xl shadow-xl p-6 border-4 border-blue-900">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-blue-900">Manage Flavors</h2>
-                    <button onClick={() => setShowAddFlavor(!showAddFlavor)} className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 flex items-center gap-2">
-                      <Icon icon={Plus} size={20} />Add Flavor
-                    </button>
-                  </div>
-                  
-                  {showAddFlavor && (
-                    <div className="flex gap-2 mb-4">
-                      <input type="text" placeholder="Enter new flavor name" value={newFlavor} onChange={(e) => setNewFlavor(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addFlavor()} className="flex-1 px-4 py-2 border-2 border-blue-900 rounded-lg focus:border-red-600 focus:outline-none font-semibold" />
-                      <button onClick={addFlavor} className="bg-blue-900 text-yellow-300 px-6 py-2 rounded-lg font-bold hover:bg-blue-800">Save</button>
-                    </div>
-                  )}
+      function setTimelineView(view) {
+        timelineView = view;
+        renderTimelineChart();
+      }
 
-                  <div className="flex flex-wrap gap-2">
-                    {flavors.map(flavor => (
-                      <div key={flavor} className="bg-white px-4 py-2 rounded-full flex items-center gap-2 border-2 border-blue-900 shadow">
-                        <span className="font-semibold text-blue-900">{flavor}</span>
-                        <button onClick={() => deleteFlavor(flavor)} className="text-red-600 hover:text-red-800">
-                          <Icon icon={X} size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+      function renderFlavorsList() {
+        const html = flavors.map(f => `
+          <div style="background: white; padding: 0.5rem 1rem; border-radius: 1rem; border: 2px solid #1e3a8a; display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-weight: 600; color: #1e3a8a;">${f}</span>
+            <button onclick="App.deleteFlavor('${f}')" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1.25rem;">×</button>
           </div>
-        </div>
-      );
-    }
+        `).join('');
+        document.getElementById('flavors-list').innerHTML = html;
+      }
 
-    ReactDOM.render(<RedBullTracker />, document.getElementById('root'));
+      function renderCompare() {
+        const people = [...new Set(entries.map(e => e.person))];
+        const html = people.map(p => {
+          const ue = entries.filter(e => e.person === p);
+          const cost = settings.trackCost ? ue.reduce((s, e) => s + (parseFloat(e.cost) || 0), 0) : 0;
+          return `
+            <div class="card">
+              <h2 style="color: #1e3a8a; font-weight: 900; margin-bottom: 1rem;">${p}</h2>
+              <div class="stats">
+                <div class="stat"><div class="stat-num">${ue.length}</div><div class="stat-label">Total</div></div>
+                <div class="stat" style="border-color: #1e3a8a;"><div class="stat-num">${ue.length * 80}mg</div><div class="stat-label">Caffeine</div></div>
+                ${settings.trackCost ? `<div class="stat"><div class="stat-num">€${cost.toFixed(2)}</div><div class="stat-label">Spent</div></div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('tab-compare').innerHTML = html || '<div class="card"><p style="text-align: center; color: #666;">No data</p></div>';
+      }
+
+      function renderRecaps() {
+        const recap = {};
+        entries.forEach(e => {
+          const d = new Date(e.date);
+          const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          const y = `${d.getFullYear()}`;
+          if (!recap[m]) recap[m] = { type: 'month', count: 0, caffeine: 0, cost: 0 };
+          if (!recap[y]) recap[y] = { type: 'year', count: 0, caffeine: 0, cost: 0 };
+          recap[m].count++; recap[m].caffeine += 80; recap[m].cost += parseFloat(e.cost) || 0;
+          recap[y].count++; recap[y].caffeine += 80; recap[y].cost += parseFloat(e.cost) || 0;
+        });
+        
+        const html = Object.entries(recap).sort((a, b) => b[0].localeCompare(a[0])).map(([p, d]) => {
+          const label = d.type === 'year' ? `Year ${p}` : new Date(p + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          return `
+            <div style="background: #fef3c7; padding: 1rem; border-radius: 0.5rem; border: 2px solid #1e3a8a; margin-bottom: 1rem;">
+              <h3 style="color: #1e3a8a; font-weight: bold; margin-bottom: 0.5rem;">${label}</h3>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div><div style="font-size: 1.5rem; font-weight: 900; color: #dc2626;">${d.count}</div><div style="font-size: 0.875rem; color: #666;">Red Bulls</div></div>
+                <div><div style="font-size: 1.5rem; font-weight: 900; color: #1e3a8a;">${d.caffeine}mg</div><div style="font-size: 0.875rem; color: #666;">Caffeine</div></div>
+                ${settings.trackCost ? `<div><div style="font-size: 1.5rem; font-weight: 900; color: #16a34a;">€${d.cost.toFixed(2)}</div><div style="font-size: 0.875rem; color: #666;">Cost</div></div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('tab-recaps').innerHTML = `<div class="card">${html || '<p style="text-align: center; color: #666;">No data</p>'}</div>`;
+      }
+
+      return {
+        init,
+        switchTab,
+        addEntry,
+        deleteEntry,
+        editEntry,
+        saveEdit,
+        cancelEdit,
+        updateSettings,
+        addFlavor,
+        deleteFlavor,
+        setFilter,
+        setTimelineView
+      };
+    })();
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', App.init);
+    } else {
+      setTimeout(() => window.supabase && App.init(), 100);
+    }
   </script>
 </body>
 </html>
